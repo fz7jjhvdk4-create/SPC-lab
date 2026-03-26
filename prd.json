@@ -1,0 +1,202 @@
+{
+  "project": "SPC-Lab",
+  "description": "Webbaserad laborationsmiljö för ingenjörsstudenter i statistisk processtyrning (SPC) och kapabilitetsstudier. Studenterna spelar rollen som kvalitetsingenjör på det fiktiva företaget Precision Parts AB och arbetar med CNC-svarvning av hydraulaxlar (nominalmått 28,000 mm, tolerans ±0,025 mm, USL=28,025 mm, LSL=27,975 mm, delgruppsstorlek n=5). Laborationen är uppdelad i en inledande dugga (entry ticket baserad på Bergman & Klefsjö) och tre faser: kontrolldiagram, störningsanalys och kapabilitetsbedömning. Verktyget körs som en fristående webbapplikation i Next.js deployad på Vercel.",
+  "techStack": [
+    "Next.js",
+    "TypeScript",
+    "Tailwind CSS",
+    "Recharts",
+    "Vercel",
+    "Neon.tech PostgreSQL"
+  ],
+  "workflow": {
+    "perStory": [
+      "1. Implementera ENDAST den aktuella storyn – inget annat",
+      "2. Kör typkontroll: npx tsc --noEmit",
+      "3. Kör linter: npx eslint . --ext .ts,.tsx",
+      "4. Kör byggtest: npm run build",
+      "5. Verifiera manuellt i webbläsaren att acceptanskriterierna uppfylls punkt för punkt",
+      "6. Uppdatera prd.json: sätt passes: true och lägg till kort notering i notes",
+      "7. Git commit med meddelandet: [US-XXX] Titel på storyn",
+      "8. Git push till main-branchen på GitHub"
+    ],
+    "commitFormat": "[US-XXX] Titel – kort beskrivning av vad som implementerades",
+    "rules": [
+      "Bygg aldrig nästa story förrän föregående har passes: true, commit och push",
+      "Om bygget misslyckas – fixa felet innan commit, committa aldrig trasig kod",
+      "Miljövariabler (.env.local) committas aldrig – kontrollera att .gitignore är korrekt innan första push",
+      "Varje push till main triggar automatisk deploy på Vercel – verifiera att live-URL fungerar efter varje push"
+    ]
+  },
+  "stories": [
+    {
+      "id": "US-000",
+      "title": "Förkunskapsdugga – entry ticket till laborationen",
+      "priority": 0,
+      "description": "Som student vill jag genomföra en kort dugga om grundläggande SPC-begrepp innan laborationen låses upp, så att jag säkerställer att jag har de förkunskaper som krävs för att arbeta effektivt under laborationstiden.",
+      "acceptance": [
+        "Duggan innehåller 10 flervalsfrågor baserade på Bergman & Klefsjös kapitel om statistisk processtyrning – frågorna täcker begreppen: variation (common cause vs special cause), kontrolldiagrammets syfte och uppbyggnad, skillnaden mellan kontrollgränser och toleransgränser, vad UCL/LCL representerar, innebörden av att en process är 'under statistisk kontroll', definitionen av Cp och Cpk, vad ett högt respektive lågt Cpk-värde innebär, syftet med delgrupper, och innebörden av Nelsonregel 1",
+        "Frågorna är markerade med en notering om att de baseras på Bergman & Klefsjö så att studenten vet var de ska läsa",
+        "Studenten måste svara rätt på minst 7 av 10 frågor (70%) för att låsa upp laborationen",
+        "Om studenten inte når 70% visas vilka frågor som var fel och studenten kan försöka igen efter 10 minuters väntetid",
+        "När duggan är godkänd sparas resultatet (studentens namn, ID, poäng, tidpunkt) i databasen och laborationen låses upp",
+        "Läraren kan i admin-portalen se duggresultat per student och hur många försök de behövde",
+        "Frågorna och svarsalternativen är konfigurerbara av läraren – de ersätts med kursspecifika frågor baserade på de inscannade sidorna från Bergman & Klefsjö när dessa tillhandahålls"
+      ],
+      "passes": true,
+      "notes": "Implementerat med Next.js App Router. Frågebank i data/quiz-questions.json (10 MCQ om variation, styrdiagram, UCL/LCL, statistisk jämvikt, Cp/Cpk, delgrupper, Nelsonregel 1). correctIndex exponeras aldrig till klienten. 10 min cooldown enforced server-side. Resultat sparas i quiz_attempts (Neon PostgreSQL). Lärarvy på /admin?password=... visar alla försök per student. Frågebanken är en platshållare tills läraren levererar inscannade sidor från Bergman & Klefsjö – bytes ut enkelt i data/quiz-questions.json."
+    },
+    {
+      "id": "US-001",
+      "title": "Startskärm och scenariointroduktion",
+      "priority": 1,
+      "description": "Som student vill jag mötas av en tydlig scenariobeskrivning när jag öppnar laborationen, så att jag förstår kontexten och vad som förväntas av mig.",
+      "acceptance": [
+        "Startskärmen visar företagsnamnet 'Precision Parts AB', en kort scenariobeskrivning om CNC-svarvning av hydraulaxlar och axelns specifikation (Ø28,000 ±0,025 mm)",
+        "Studenten ser tydligt om deras dugga är godkänd (grön bock) eller om de behöver genomföra duggan först",
+        "Studenten anger sitt namn och studentID för att identifiera sig – om duggan redan är godkänd för detta ID är laborationen direkt tillgänglig",
+        "En tydlig beskrivning av laborationens tre faser visas (Fas 1: Kontrolldiagram, Fas 2: Störningsanalys, Fas 3: Kapabilitetsstudie)",
+        "Knapp 'Starta laboration' är aktiv endast om duggan är godkänd, annars visas 'Gå till duggan'",
+        "Designen är professionell och industriell i känslan"
+      ],
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "Datapresentation – mätvärden i delgrupper",
+      "priority": 2,
+      "description": "Som student vill jag se mätdata presenterad i en tydlig tabell med delgrupper, så att jag förstår underlaget för kontrolldiagrammet.",
+      "acceptance": [
+        "25 delgrupper visas, varje delgrupp innehåller 5 mätvärden (axeldiameter i mm, upplösning 0,001 mm)",
+        "Tabellen visar delgruppsnummer, de 5 individuella mätvärdena, beräknat medelvärde (x̄) och beräknat spridningsmått (R)",
+        "Studentens egna ifyllda värden för x̄ och R visas i separata kolumner som studenten kan fylla i manuellt",
+        "Systemet visar om studentens beräkning är korrekt (grön bock) eller fel (röd markering) efter att studenten bekräftat sina svar",
+        "Nominalvärde (28,000 mm), USL (28,025 mm) och LSL (27,975 mm) visas tydligt ovanför tabellen med en förklaring av vad de representerar i hydraulaxelkontexten"
+      ],
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "Beräkning av kontrollgränser",
+      "priority": 3,
+      "description": "Som student vill jag beräkna kontrollgränser (UCL och LCL) för X̄- och R-diagrammet med hjälp av rätt formler och faktorer, så att jag förstår hur kontrollgränserna härleds.",
+      "acceptance": [
+        "Studenten presenteras med formlerna för UCL och LCL för X̄-diagrammet (x̄̄ ± A₂·R̄) och R-diagrammet (D₄·R̄ och D₃·R̄)",
+        "En tabell med d₂-, A₂-, D₃- och D₄-faktorer för n=2 till n=10 finns tillgänglig som referens i ett sidopanel",
+        "Studenten matar in sina beräknade värden för x̄̄, R̄, UCL_x, LCL_x, UCL_R och LCL_R",
+        "Systemet validerar varje värde och ger feedback med korrekt svar om studenten räknar fel",
+        "Studenten kan inte gå vidare till diagramritningen förrän kontrollgränserna är korrekt beräknade"
+      ],
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Interaktivt X̄/R-kontrolldiagram",
+      "priority": 4,
+      "description": "Som student vill jag se ett interaktivt kontrolldiagram baserat på mina beräknade kontrollgränser, så att jag kan visuellt tolka processens stabilitet.",
+      "acceptance": [
+        "X̄-diagram och R-diagram visas under varandra med gemensam x-axel (delgruppsnummer 1–25)",
+        "Centrallinje (CL), UCL och LCL ritas ut som horisontella linjer med tydliga etiketter och värden",
+        "Datapunkterna plottas och linjer dras mellan dem",
+        "Punkter utanför kontrollgränserna markeras automatiskt i rött",
+        "Diagrammet är responsivt och tydligt läsbart",
+        "Studenten kan hovra över en datapunkt för att se delgruppsnummer och exakt värde"
+      ],
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "Stabilitetsanalys och Nelsonregler",
+      "priority": 5,
+      "description": "Som student vill jag analysera kontrolldiagrammet med hjälp av Nelsonreglerna, så att jag kan avgöra om processen är under statistisk kontroll.",
+      "acceptance": [
+        "En sammanfattning av de vanligaste Nelsonreglerna (regel 1–4) visas som referens",
+        "Studenten besvarar frågor om vilka regler som eventuellt bryts i den givna datamängden",
+        "Studenten ombeds att skriva en kort tolkning av vad ett regelbrott innebär i det aktuella processcenariots kontext",
+        "Systemet bekräftar om studentens identifiering av regelbrott är korrekt",
+        "Om processen är stabil kan studenten fortsätta till Fas 3 (kapabilitet); om den är instabil förklaras varför kapabilitetsstudie inte bör göras på instabil process"
+      ],
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-006",
+      "title": "Fas 2 – Störningsscenario",
+      "priority": 6,
+      "description": "Som student vill jag analysera ett nytt dataset där en störning har introducerats i processen, så att jag tränar på att identifiera special cause variation i ett kontrolldiagram.",
+      "acceptance": [
+        "Ett nytt dataset med 25 delgrupper presenteras där en tydlig drift eller ett regelbrott är inbyggt (t.ex. en gradvis ökning av medelvärdet från delgrupp 15 och framåt)",
+        "Studenten ritar upp diagrammet med samma kontrollgränser som i Fas 1 (eller beräknar nya – studenten väljer och motiverar)",
+        "Studenten identifierar vilken/vilka Nelsonregler som bryts och från vilken delgrupp",
+        "Studenten ombeds att ge en möjlig processförklaring till störningen (t.ex. verktygsnötning, råmaterialbyte)",
+        "Systemet ger feedback och en modellförklaring"
+      ],
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-007",
+      "title": "Fas 3 – Cp och Cpk-beräkning",
+      "priority": 7,
+      "description": "Som student vill jag beräkna Cp och Cpk för den stabila processen från Fas 1, så att jag kan bedöma om processen är kapabel att hålla toleranserna.",
+      "acceptance": [
+        "Toleransgränserna (USL och LSL) samt nominalvärdet visas tydligt",
+        "Formlerna för Cp = (USL−LSL)/(6σ̂) och Cpk = min[(USL−x̄̄)/3σ̂, (x̄̄−LSL)/3σ̂] presenteras",
+        "σ̂ beräknas från R̄/d₂ och studenten matar in detta värde",
+        "Studenten matar in sina beräknade värden för Cp och Cpk",
+        "Systemet validerar värdena och ger feedback",
+        "En visuell representation visar processfördelningen i förhållande till toleransgränserna"
+      ],
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-008",
+      "title": "Kapabilitetstolkning och rekommendation",
+      "priority": 8,
+      "description": "Som student vill jag tolka Cp- och Cpk-värdena och formulera en rekommendation, så att jag kopplar beräkningarna till ett verkligt ingenjörsbeslut.",
+      "acceptance": [
+        "En referenstabell för tolkning av kapabilitetsvärden visas (Cpk < 1.0, 1.0–1.33, 1.33–1.67, > 1.67)",
+        "Studenten besvarar frågor: Är processen kapabel? Är processen centrerad? Vad bör åtgärdas?",
+        "Studenten skriver en kort rekommendation (fritext, minst 50 tecken) till produktionschefen",
+        "Systemet ger en modellrekommendation som studenten kan jämföra med sin egen",
+        "Ett sammanfattningskort visas med alla studentens beräknade värden och tolkningar"
+      ],
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-009",
+      "title": "Labrapport och exportfunktion",
+      "priority": 9,
+      "description": "Som student vill jag kunna exportera en sammanfattning av mina svar och beräkningar, så att jag kan lämna in laborationsrapporten till läraren.",
+      "acceptance": [
+        "En 'Avsluta och exportera'-knapp finns tillgänglig när alla tre faser är slutförda",
+        "Exporten genererar en PDF med studentens namn, ID, datum, alla beräknade värden, kontrolldiagrammen och skrivna tolkningar",
+        "PDF:en innehåller en tydlig rubrik med 'SPC-Lab – Laborationsrapport' och kursnamnet",
+        "Läraren kan konfigurera om rapporten ska skickas automatiskt till en e-postadress eller enbart laddas ner lokalt"
+      ],
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-010",
+      "title": "Lärarportal – resultatöversikt",
+      "priority": 10,
+      "description": "Som lärare vill jag kunna se vilka studenter som genomfört laborationen och deras resultat, så att jag kan följa upp och ge återkoppling.",
+      "acceptance": [
+        "En lösenordsskyddad lärarvy finns tillgänglig via /admin-rutten",
+        "Lärarvyn listar alla studenter som genomfört laborationen med namn, ID och datum",
+        "För varje student visas om de klarat varje fas (grön/röd markering per fas)",
+        "Läraren kan klicka på en student för att se alla deras svar och beräkningar i detalj",
+        "Data lagras i Neon.tech PostgreSQL-databas"
+      ],
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}

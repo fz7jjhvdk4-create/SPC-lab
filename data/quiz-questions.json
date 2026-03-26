@@ -1,0 +1,146 @@
+{
+  "meta": {
+    "source": "Bergman & Klefsjö – Kvalitet från behov till användning",
+    "chapters": [
+      "Kapitel 7 (Variation)",
+      "Kapitel 8 (Styrdiagram)",
+      "Kapitel 17 (Statistisk processtyrning)",
+      "Kapitel 18 (Processduglighet)"
+    ],
+    "passingScore": 7,
+    "totalQuestions": 10,
+    "cooldownMinutes": 10
+  },
+  "questions": [
+    {
+      "id": 1,
+      "topic": "Variation",
+      "question": "Vad är den grundläggande skillnaden mellan slumpmässig variation (common cause) och urskiljbar variation (special cause)?",
+      "options": [
+        "Slumpmässig variation beror på många små, okontrollerbara orsaker som alltid finns i processen, medan urskiljbar variation beror på en specifik identifierbar orsak.",
+        "Slumpmässig variation kan elimineras genom förbättringsarbete, medan urskiljbar variation är permanent och inte kan åtgärdas.",
+        "Urskiljbar variation är alltid av mindre storlek än slumpmässig variation och påverkar sällan produktkvaliteten.",
+        "Slumpmässig variation indikerar att processen måste stoppas omedelbart för kalibrering."
+      ],
+      "correctIndex": 0,
+      "reference": "Bergman & Klefsjö, kap. 7"
+    },
+    {
+      "id": 2,
+      "topic": "Styrdiagram",
+      "question": "Vilket är det primära syftet med ett styrdiagram (kontrolldiagram)?",
+      "options": [
+        "Att visa om en färdig produkt uppfyller kundernas toleranskrav (specifikationsgränser).",
+        "Att detektera urskiljbara orsaker till variation och avgöra om en process är i statistisk jämvikt.",
+        "Att beräkna medelvärdet och standardavvikelsen för en hel produktionsserie i efterhand.",
+        "Att ersätta slutkontrollen av färdiga produkter med ett statistiskt urval."
+      ],
+      "correctIndex": 1,
+      "reference": "Bergman & Klefsjö, kap. 8 och 17"
+    },
+    {
+      "id": 3,
+      "topic": "Styrdiagram – uppbyggnad",
+      "question": "Vad representerar centrallinjen (CL) i ett X̄-diagram?",
+      "options": [
+        "Nominalvärdet (målvärdet) som anges i produktspecifikationen.",
+        "Den övre toleransgränsen (USL) dividerat med två.",
+        "Medelvärdet av delgruppsmedelvärden (x̄̄, grand mean), som skattar processens väntevärde.",
+        "Medelvärdet av variationsbredderna (R̄) dividerat med faktorn d₂."
+      ],
+      "correctIndex": 2,
+      "reference": "Bergman & Klefsjö, kap. 17"
+    },
+    {
+      "id": 4,
+      "topic": "Kontrollgränser vs toleransgränser",
+      "question": "Vad är den viktiga skillnaden mellan styrgränser (UCL/LCL) och toleransgränser (USL/LSL)?",
+      "options": [
+        "Styrgränser och toleransgränser är samma sak och kan användas omväxlande i kvalitetsarbetet.",
+        "Styrgränser beräknas från processdata och används för att bedöma processstabilitet, medan toleransgränser sätts utifrån kundkrav för enskilda enheter.",
+        "Toleransgränser är alltid bredare än styrgränser och innehåller därmed alltid styrdiagrammets gränser.",
+        "Styrgränser används enbart för variabeldata och toleransgränser enbart för attributdata."
+      ],
+      "correctIndex": 1,
+      "reference": "Bergman & Klefsjö, kap. 17"
+    },
+    {
+      "id": 5,
+      "topic": "UCL/LCL",
+      "question": "I ett Shewhart X̄-diagram placeras UCL och LCL på ±3σ_x̄ från centrallinjen. Vad innebär detta i praktiken?",
+      "options": [
+        "Att 99,73 % av alla delgruppsmedelvärden förväntas ligga inom gränserna när processen är i statistisk jämvikt, vilket gör falskt alarm sällsynt.",
+        "Att processen garanterat är fri från alla defekter om mätpunkterna håller sig innanför gränserna.",
+        "Att toleranserna är satta till ±3 mm från nominalvärdet i specifikationen.",
+        "Att exakt 95 % av produktionen ligger inom specifikationsgränserna (USL och LSL)."
+      ],
+      "correctIndex": 0,
+      "reference": "Bergman & Klefsjö, kap. 17"
+    },
+    {
+      "id": 6,
+      "topic": "Statistisk jämvikt",
+      "question": "Vad menas med att en process är 'under statistisk kontroll' (i statistisk jämvikt)?",
+      "options": [
+        "Att alla producerade enheter uppfyller toleransgränserna och inga defekter förekommer.",
+        "Att processen inte har någon variation alls och att alla mätvärden är identiska.",
+        "Att enbart slumpmässig (common cause) variation förekommer – ingen identifierbar urskiljbar orsak är aktiv.",
+        "Att processen styrs av ett datoriserat system utan mänsklig inblandning eller justering."
+      ],
+      "correctIndex": 2,
+      "reference": "Bergman & Klefsjö, kap. 17"
+    },
+    {
+      "id": 7,
+      "topic": "Processduglighet – Cp och Cpk",
+      "question": "Vad mäter duglighetsindexet Cp respektive det korrigerade duglighetsindexet Cpk?",
+      "options": [
+        "Cp mäter andelen defekta enheter per miljon (ppm); Cpk mäter antalet oplanerade stopp i processen per skift.",
+        "Cp sätter toleransbredden i relation till processens naturliga variation (6σ̂) utan hänsyn till centrering; Cpk tar även hänsyn till hur processen är centrerad mot toleransgränserna.",
+        "Cp och Cpk är identiska index och ger alltid exakt samma värde för en väl centrerad process.",
+        "Cp mäter processens medelvärde; Cpk mäter processens standardavvikelse."
+      ],
+      "correctIndex": 1,
+      "reference": "Bergman & Klefsjö, kap. 18"
+    },
+    {
+      "id": 8,
+      "topic": "Tolkning av Cpk",
+      "question": "En CNC-maskin producerar axlar med Cpk = 0,85. Vad innebär detta?",
+      "options": [
+        "Processen är utmärkt – inga åtgärder behövs och maskinen kan producera utan kontroll.",
+        "Processen är kapabel och uppfyller precis minimikravet Cpk ≥ 1,33 som industrin ofta kräver.",
+        "Processen är inte kapabel; dess naturliga variation överlappar toleransgränserna och en signifikant andel axlar riskerar att produceras utanför specifikation.",
+        "Cpk < 1 innebär att processen är stabil och centrerad – inga defekter uppstår men förbättring är möjlig."
+      ],
+      "correctIndex": 2,
+      "reference": "Bergman & Klefsjö, kap. 18"
+    },
+    {
+      "id": 9,
+      "topic": "Delgrupper",
+      "question": "Varför tar man ut delgrupper (provgrupper, rational subgroups) i statistisk processtyrning istället för att enbart mäta enstaka enheter?",
+      "options": [
+        "Delgrupper används enbart för att minska mätkostnaderna och är inte statistiskt motiverade.",
+        "Genom att beräkna medelvärdet av en delgrupp minskar slumpvariationen, vilket gör det lättare att detektera verkliga processförändringar. Homogena delgrupper hjälper även till att skilja variation inom grupp från variation mellan grupper.",
+        "Delgrupper krävs enligt ISO-standarder i all tillverkningsindustri och är ett juridiskt krav.",
+        "Enstaka mätvärden ger för högt Cpk-värde vilket kan vilseleda produktionschefen."
+      ],
+      "correctIndex": 1,
+      "reference": "Bergman & Klefsjö, kap. 17"
+    },
+    {
+      "id": 10,
+      "topic": "Nelsonregler",
+      "question": "Vad innebär Nelson-regel 1 (Western Electric-regel 1) i ett styrdiagram?",
+      "options": [
+        "Åtta på varandra följande punkter ligger på samma sida om centrallinjen – tecken på systematisk drift.",
+        "Fyra av fem på varandra följande punkter ligger utanför 1-sigma-zonen på samma sida om CL.",
+        "En enstaka punkt ligger utanför 3-sigma-gränsen (UCL eller LCL) – en stark indikation på att en urskiljbar orsak till variation är aktiv.",
+        "Två av tre på varandra följande punkter befinner sig i 2–3-sigma-zonen (zon A) på samma sida."
+      ],
+      "correctIndex": 2,
+      "reference": "Bergman & Klefsjö, kap. 17"
+    }
+  ]
+}

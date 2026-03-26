@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SPC-Lab – Prototyp</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+    background: #F5F6F8;
+    color: #1a1a2e;
+    min-height: 100vh;
+  }
+
+  /* TOP BAR */
+  .topbar {
+    background: #1F4E79;
+    color: white;
+    padding: 0 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 56px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  }
+  .topbar-left { display: flex; align-items: center; gap: 12px; }
+  .topbar-logo { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; }
+  .topbar-sub { font-size: 13px; opacity: 0.7; }
+  .topbar-badge { background: rgba(255,255,255,0.15); border-radius: 20px; padding: 4px 12px; font-size: 12px; }
+
+  /* LAYOUT */
+  .layout { display: flex; min-height: calc(100vh - 56px); }
+
+  /* SIDEBAR */
+  .sidebar {
+    width: 220px;
+    background: white;
+    border-right: 1px solid #E2E8F0;
+    padding: 1.5rem 0;
+    position: sticky;
+    top: 56px;
+    height: calc(100vh - 56px);
+    overflow-y: auto;
+    flex-shrink: 0;
+  }
+  .sidebar-section { padding: 0 1rem 1rem; }
+  .sidebar-label { font-size: 10px; font-weight: 600; color: #94A3B8; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 8px; padding: 0 4px; }
+  .sidebar-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px; border-radius: 8px; cursor: pointer;
+    font-size: 13px; color: #475569; transition: all 0.15s; margin-bottom: 2px;
+    border: none; background: none; width: 100%; text-align: left;
+  }
+  .sidebar-item:hover { background: #F1F5F9; color: #1F4E79; }
+  .sidebar-item.active { background: #EFF6FF; color: #1F4E79; font-weight: 600; }
+  .sidebar-item.done .step-num { background: #1D9E75; color: white; }
+  .sidebar-item.active .step-num { background: #1F4E79; color: white; }
+  .step-num {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: #E2E8F0; color: #64748B;
+    font-size: 11px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .sidebar-divider { height: 1px; background: #F1F5F9; margin: 8px 1rem 12px; }
+
+  /* MAIN */
+  .main { flex: 1; padding: 2rem; max-width: 900px; }
+
+  /* CARDS */
+  .card {
+    background: white; border-radius: 12px;
+    border: 1px solid #E2E8F0; padding: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+  .card-title { font-size: 15px; font-weight: 600; color: #1F4E79; margin-bottom: 4px; }
+  .card-sub { font-size: 13px; color: #64748B; margin-bottom: 1rem; line-height: 1.5; }
+
+  /* SPEC BAR */
+  .spec-bar { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 1.5rem; }
+  .spec-pill {
+    background: white; border: 1px solid #E2E8F0; border-radius: 8px;
+    padding: 8px 14px; font-size: 13px; color: #64748B;
+  }
+  .spec-pill strong { color: #1F4E79; font-weight: 600; }
+
+  /* TABS */
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid #E2E8F0; margin-bottom: 1.5rem; }
+  .tab {
+    padding: 10px 18px; font-size: 13px; font-weight: 500; cursor: pointer;
+    border: none; background: none; color: #64748B;
+    border-bottom: 2px solid transparent; margin-bottom: -1px; border-radius: 0;
+    transition: all 0.15s;
+  }
+  .tab:hover { color: #1F4E79; }
+  .tab.active { color: #1F4E79; border-bottom-color: #1F4E79; }
+
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* PHASE BANNER */
+  .phase-banner {
+    background: linear-gradient(135deg, #1F4E79 0%, #2E75B6 100%);
+    border-radius: 10px; padding: 1rem 1.25rem;
+    color: white; margin-bottom: 1.5rem;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .phase-icon { font-size: 24px; }
+  .phase-title { font-size: 16px; font-weight: 700; }
+  .phase-desc { font-size: 13px; opacity: 0.85; margin-top: 2px; }
+
+  /* METRICS */
+  .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 1.5rem; }
+  .metric { background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 10px; padding: 14px; }
+  .metric-label { font-size: 11px; color: #94A3B8; margin-bottom: 4px; font-weight: 500; }
+  .metric-value { font-size: 21px; font-weight: 700; color: #1F4E79; }
+  .metric-sub { font-size: 11px; color: #94A3B8; margin-top: 2px; }
+  .metric.green .metric-value { color: #1D9E75; }
+  .metric.amber .metric-value { color: #BA7517; }
+  .metric.red .metric-value { color: #E24B4A; }
+
+  /* CHART */
+  .chart-wrap { position: relative; width: 100%; margin-bottom: 1.5rem; }
+  .chart-label { font-size: 12px; font-weight: 600; color: #64748B; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.04em; }
+
+  /* INFO BOX */
+  .info-box {
+    border-radius: 8px; padding: 12px 16px;
+    font-size: 13px; line-height: 1.6; margin-bottom: 1.5rem;
+    border-left: 4px solid;
+  }
+  .info-box.blue { background: #EFF6FF; border-color: #2E75B6; color: #1e40af; }
+  .info-box.green { background: #F0FDF4; border-color: #1D9E75; color: #166534; }
+  .info-box.red { background: #FEF2F2; border-color: #E24B4A; color: #991b1b; }
+  .info-box.amber { background: #FFFBEB; border-color: #BA7517; color: #92400e; }
+  .info-box strong { font-weight: 600; }
+
+  /* LEGEND */
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 10px; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 12px; color: #64748B; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .legend-dash { width: 20px; height: 2px; border-top: 2px dashed; }
+
+  /* CPK BAR */
+  .cpk-section { margin-bottom: 1.5rem; }
+  .cpk-header { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 8px; }
+  .cpk-bar-bg { height: 14px; background: #F1F5F9; border-radius: 7px; overflow: hidden; }
+  .cpk-bar-fill { height: 100%; border-radius: 7px; transition: width 0.8s ease; }
+  .cpk-ticks { display: flex; justify-content: space-between; font-size: 10px; color: #94A3B8; margin-top: 5px; }
+
+  /* SCENARIO BOX */
+  .scenario {
+    background: #FFFBEB; border: 1px solid #FDE68A; border-radius: 10px;
+    padding: 1rem 1.25rem; margin-bottom: 1.5rem;
+  }
+  .scenario-title { font-size: 13px; font-weight: 700; color: #92400e; margin-bottom: 4px; }
+  .scenario-text { font-size: 13px; color: #78350f; line-height: 1.6; }
+
+  /* FOOTER */
+  .footer-note {
+    text-align: center; padding: 2rem;
+    font-size: 12px; color: #94A3B8;
+  }
+
+  @media (max-width: 768px) {
+    .sidebar { display: none; }
+    .metrics { grid-template-columns: repeat(2, 1fr); }
+    .main { padding: 1rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="topbar-logo">SPC-Lab</div>
+    <div class="topbar-sub">Precision Parts AB</div>
+  </div>
+  <div class="topbar-badge">Prototyp – Demo</div>
+</div>
+
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Förkunskap</div>
+      <button class="sidebar-item done" onclick="showSection('start')">
+        <div class="step-num">✓</div> Dugga godkänd
+      </button>
+    </div>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Laboration</div>
+      <button class="sidebar-item active" id="nav-fas1" onclick="showSection('fas1'); setNav('nav-fas1')">
+        <div class="step-num">1</div> Kontrolldiagram
+      </button>
+      <button class="sidebar-item" id="nav-fas2" onclick="showSection('fas2'); setNav('nav-fas2')">
+        <div class="step-num">2</div> Störningsanalys
+      </button>
+      <button class="sidebar-item" id="nav-fas3" onclick="showSection('fas3'); setNav('nav-fas3')">
+        <div class="step-num">3</div> Kapabilitet
+      </button>
+    </div>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <main class="main">
+
+    <!-- SPEC BAR -->
+    <div class="spec-bar">
+      <div class="spec-pill">Nominalvärde <strong>Ø 28,000 mm</strong></div>
+      <div class="spec-pill">USL <strong>28,025 mm</strong></div>
+      <div class="spec-pill">LSL <strong>27,975 mm</strong></div>
+      <div class="spec-pill">Toleransvidd <strong>0,050 mm</strong></div>
+      <div class="spec-pill">Delgruppsstorlek <strong>n = 5</strong></div>
+    </div>
+
+    <!-- TABS -->
+    <div class="tabs">
+      <button class="tab active" id="tab-fas1" onclick="showSection('fas1'); setNav('nav-fas1')">Fas 1 – Kontrolldiagram</button>
+      <button class="tab" id="tab-fas2" onclick="showSection('fas2'); setNav('nav-fas2')">Fas 2 – Störning</button>
+      <button class="tab" id="tab-fas3" onclick="showSection('fas3'); setNav('nav-fas3')">Fas 3 – Kapabilitet</button>
+    </div>
+
+    <!-- FAS 1 -->
+    <div id="fas1" class="section active">
+      <div class="phase-banner">
+        <div class="phase-icon">📊</div>
+        <div>
+          <div class="phase-title">Fas 1 – Stabil process</div>
+          <div class="phase-desc">Beräkna kontrollgränser och bedöm om processen är under statistisk kontroll</div>
+        </div>
+      </div>
+
+      <div class="scenario">
+        <div class="scenario-title">Scenario</div>
+        <div class="scenario-text">Du är kvalitetsingenjör på Precision Parts AB. CNC-maskinen har svarvat 25 delgrupper om 5 axlar vardera. Din uppgift är att beräkna kontrollgränser, rita X̄/R-diagram och bedöma processens stabilitet.</div>
+      </div>
+
+      <div class="metrics" id="m1"></div>
+
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#2E75B6"></div>Medelvärde x̄</div>
+        <div class="legend-item"><div class="legend-dash" style="border-color:#2E75B6"></div>CL (centrallinje)</div>
+        <div class="legend-item"><div class="legend-dash" style="border-color:#E24B4A"></div>UCL / LCL</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#E24B4A"></div>Utanför gräns</div>
+      </div>
+
+      <div class="chart-label">X̄-diagram – medelvärde per delgrupp</div>
+      <div class="chart-wrap" style="height:200px"><canvas id="c1x"></canvas></div>
+
+      <div class="chart-label">R-diagram – spridning per delgrupp</div>
+      <div class="chart-wrap" style="height:160px"><canvas id="c1r"></canvas></div>
+
+      <div class="info-box green">
+        <strong>Slutsats:</strong> Inga punkter utanför kontrollgränserna. Inga Nelsonregler bryts. Processen bedöms vara under statistisk kontroll – kapabilitetsstudie kan genomföras.
+      </div>
+    </div>
+
+    <!-- FAS 2 -->
+    <div id="fas2" class="section">
+      <div class="phase-banner">
+        <div class="phase-icon">⚠️</div>
+        <div>
+          <div class="phase-title">Fas 2 – Störningsanalys</div>
+          <div class="phase-desc">Identifiera var i processen störningen inträffar och vilken Nelsonregel som bryts</div>
+        </div>
+      </div>
+
+      <div class="scenario">
+        <div class="scenario-title">Scenario</div>
+        <div class="scenario-text">Nästa skift startar. Samma maskin, samma kontrollgränser – men något har förändrats. Analysera diagrammet och identifiera störningens karaktär och troliga orsak.</div>
+      </div>
+
+      <div class="metrics" id="m2"></div>
+
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#2E75B6"></div>Medelvärde x̄</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#E24B4A"></div>Regelbrott (Nelson regel 1)</div>
+      </div>
+
+      <div class="chart-label">X̄-diagram – kan du se störningen?</div>
+      <div class="chart-wrap" style="height:200px"><canvas id="c2x"></canvas></div>
+
+      <div class="info-box red">
+        <strong>Svar:</strong> Från delgrupp 16 stiger medelvärdet gradvis (verktygsnötning). Nelson regel 1 bryts vid delgrupp 22 – punkten ligger utanför UCL. Processen är inte under statistisk kontroll och måste åtgärdas innan kapabilitetsstudien är meningsfull.
+      </div>
+    </div>
+
+    <!-- FAS 3 -->
+    <div id="fas3" class="section">
+      <div class="phase-banner">
+        <div class="phase-icon">🎯</div>
+        <div>
+          <div class="phase-title">Fas 3 – Kapabilitetsstudie</div>
+          <div class="phase-desc">Beräkna Cp och Cpk och formulera en rekommendation till produktionschefen</div>
+        </div>
+      </div>
+
+      <div class="scenario">
+        <div class="scenario-title">Scenario</div>
+        <div class="scenario-text">Baserat på den stabila processen i Fas 1 – är maskinen kapabel att producera axlar inom toleransen? Hydraulcylindern kräver att axeldiametern håller ±0,025 mm för att tätningarna ska fungera.</div>
+      </div>
+
+      <div class="metrics" id="m3"></div>
+
+      <div class="chart-label">Processfördelning i förhållande till toleransgränser</div>
+      <div class="chart-wrap" style="height:200px"><canvas id="c3n"></canvas></div>
+
+      <div class="cpk-section">
+        <div class="cpk-header">
+          <span style="color:#64748B;font-size:13px">Cpk-nivå</span>
+          <span id="cpkLabel" style="font-weight:700;font-size:14px;color:#1F4E79"></span>
+        </div>
+        <div class="cpk-bar-bg">
+          <div class="cpk-bar-fill" id="cpkBar"></div>
+        </div>
+        <div class="cpk-ticks">
+          <span>0</span><span>1,0 (min)</span><span>1,33 (bra)</span><span>1,67 (mycket bra)</span><span>2,0</span>
+        </div>
+      </div>
+
+      <div class="info-box amber" id="cpkVerdict"></div>
+
+      <div class="card">
+        <div class="card-title">Formler som används</div>
+        <div style="font-size:13px;color:#475569;line-height:2;font-family:monospace;margin-top:8px;">
+          σ̂ = R̄ / d₂ &nbsp;&nbsp;&nbsp; (d₂ = 2,326 för n=5)<br>
+          Cp = (USL − LSL) / (6σ̂)<br>
+          Cpk = min[ (USL − x̄̄) / 3σ̂ , (x̄̄ − LSL) / 3σ̂ ]
+        </div>
+      </div>
+    </div>
+
+    <div class="footer-note">
+      SPC-Lab – Prototyp &nbsp;|&nbsp; Precision Parts AB &nbsp;|&nbsp; Hydraulaxel Ø28,000 ±0,025 mm
+    </div>
+
+  </main>
+</div>
+
+<script>
+const USL = 28.025, LSL = 27.975, NOM = 28.000;
+const A2 = 0.577, D3 = 0, D4 = 2.114, d2 = 2.326;
+
+function rnd(v, d=4){ return parseFloat(v.toFixed(d)); }
+
+function generateData(seed, drift=0) {
+  let s = seed;
+  function rand() { s = (s * 1664525 + 1013904223) & 0xffffffff; return (s >>> 0) / 0xffffffff; }
+  function normal() { return Math.sqrt(-2*Math.log(rand()+0.0001)) * Math.cos(2*Math.PI*rand()); }
+  const groups = [];
+  for (let i=0; i<25; i++) {
+    const d = i >= 15 ? drift*(i-14)*0.0012 : 0;
+    const vals = Array.from({length:5}, () => rnd(NOM + d + normal()*0.008, 3));
+    const xbar = rnd(vals.reduce((a,b)=>a+b,0)/5, 4);
+    const R = rnd(Math.max(...vals) - Math.min(...vals), 4);
+    groups.push({i:i+1, vals, xbar, R});
+  }
+  return groups;
+}
+
+const data1 = generateData(42, 0);
+const data2 = generateData(42, 1);
+
+function calcLimits(groups) {
+  const xbarbar = rnd(groups.reduce((a,g)=>a+g.xbar,0)/groups.length, 4);
+  const Rbar = rnd(groups.reduce((a,g)=>a+g.R,0)/groups.length, 4);
+  return {
+    xbarbar, Rbar,
+    UCLx: rnd(xbarbar + A2*Rbar, 4),
+    LCLx: rnd(xbarbar - A2*Rbar, 4),
+    UCLr: rnd(D4*Rbar, 4),
+    LCLr: rnd(D3*Rbar, 4),
+    sigma: rnd(Rbar/d2, 5)
+  };
+}
+
+const L = calcLimits(data1);
+const Cp = rnd((USL-LSL)/(6*L.sigma), 3);
+const CpkU = rnd((USL-L.xbarbar)/(3*L.sigma), 3);
+const CpkL = rnd((L.xbarbar-LSL)/(3*L.sigma), 3);
+const Cpk = rnd(Math.min(CpkU, CpkL), 3);
+
+function setMetrics(id, items) {
+  document.getElementById(id).innerHTML = items.map(m =>
+    `<div class="metric ${m.cls||''}">
+      <div class="metric-label">${m.label}</div>
+      <div class="metric-value">${m.value}</div>
+      <div class="metric-sub">${m.sub||''}</div>
+    </div>`
+  ).join('');
+}
+
+setMetrics('m1', [
+  {label:'x̄̄ (grand mean)', value: L.xbarbar.toFixed(4)+' mm', sub:'medelvärde av delgruppernas medelvärden'},
+  {label:'R̄ (mean range)', value: L.Rbar.toFixed(4)+' mm', sub:'medelvärde av spridningarna'},
+  {label:'UCL_x', value: L.UCLx.toFixed(4)+' mm', sub:'x̄̄ + A₂·R̄,  A₂ = 0,577'},
+  {label:'LCL_x', value: L.LCLx.toFixed(4)+' mm', sub:'x̄̄ − A₂·R̄'},
+]);
+
+setMetrics('m2', [
+  {label:'Störning börjar', value:'Delgrupp 16', sub:'gradvis drift uppåt', cls:'amber'},
+  {label:'Nelson regel 1', value:'Brott vid dg 22', sub:'punkt utanför UCL', cls:'red'},
+  {label:'Trolig orsak', value:'Verktygsnötning', sub:'CNC-verktyget slits ned'},
+  {label:'Åtgärd', value:'Byt verktyg', sub:'re-etablera kontrolldiagram'},
+]);
+
+setMetrics('m3', [
+  {label:'σ̂ = R̄/d₂', value: L.sigma.toFixed(5)+' mm', sub:'skattad standardavvikelse'},
+  {label:'Cp', value: Cp.toFixed(3), sub:'tolerans / 6σ̂', cls: Cp>=1.33?'green':Cp>=1.0?'amber':'red'},
+  {label:'Cpk', value: Cpk.toFixed(3), sub:'min(CpkU, CpkL)', cls: Cpk>=1.33?'green':Cpk>=1.0?'amber':'red'},
+  {label:'Centrering', value: Math.abs(Cp-Cpk)<0.05?'Centrerad':'Ej centrerad', sub:`CpkU=${CpkU.toFixed(3)}, CpkL=${CpkL.toFixed(3)}`, cls: Math.abs(Cp-Cpk)<0.05?'green':'amber'},
+]);
+
+const cpkPct = Math.min(Cpk/2*100, 100);
+document.getElementById('cpkBar').style.width = cpkPct+'%';
+document.getElementById('cpkBar').style.background = Cpk>=1.33?'#1D9E75':Cpk>=1.0?'#BA7517':'#E24B4A';
+document.getElementById('cpkLabel').textContent = 'Cpk = ' + Cpk.toFixed(3);
+
+const v = document.getElementById('cpkVerdict');
+if (Cpk >= 1.33) {
+  v.className = 'info-box green';
+  v.innerHTML = '<strong>Rekommendation:</strong> Processen är kapabel (Cpk = '+Cpk.toFixed(3)+' ≥ 1,33). Hydraulaxlarna produceras med god marginal inom toleransen. Fortsatt processövervakning med X̄/R-diagram rekommenderas.';
+} else if (Cpk >= 1.0) {
+  v.className = 'info-box amber';
+  v.innerHTML = '<strong>Rekommendation:</strong> Processen är marginellt kapabel (Cpk = '+Cpk.toFixed(3)+'). Viss risk för defekter finns. Utred om processen kan centreras bättre mot nominalvärdet 28,000 mm.';
+} else {
+  v.className = 'info-box red';
+  v.innerHTML = '<strong>Rekommendation:</strong> Processen är inte kapabel (Cpk = '+Cpk.toFixed(3)+' < 1,0). Maskinen producerar sannolikt axlar utanför toleransen vilket ger läckage i hydraulcylindern. Omedelbar åtgärd krävs.';
+}
+
+const gridColor = 'rgba(200,210,220,0.4)';
+const chartDefaults = {
+  responsive: true, maintainAspectRatio: false,
+  plugins: { legend: { display: false } },
+  scales: {
+    x: { grid: { color: gridColor }, ticks: { font: { size: 11 }, color: '#94A3B8' } },
+    y: { grid: { color: gridColor }, ticks: { font: { size: 11 }, color: '#94A3B8' } }
+  }
+};
+
+function makeXbarChart(id, groups, limits) {
+  const xbars = groups.map(g=>g.xbar);
+  const isOut = xbars.map(v => v > limits.UCLx || v < limits.LCLx);
+  new Chart(document.getElementById(id), {
+    type: 'line',
+    data: {
+      labels: groups.map(g=>g.i),
+      datasets: [
+        {
+          label:'x̄', data: xbars, borderColor:'#2E75B6', borderWidth:2, tension:0.2, fill:false,
+          pointRadius: xbars.map((_,i)=>isOut[i]?7:4),
+          pointBackgroundColor: xbars.map((_,i)=>isOut[i]?'#E24B4A':'#2E75B6'),
+          pointBorderColor: xbars.map((_,i)=>isOut[i]?'#E24B4A':'#2E75B6'),
+        },
+        { label:'UCL', data: Array(25).fill(limits.UCLx), borderColor:'#E24B4A', borderWidth:1.5, borderDash:[5,4], pointRadius:0, fill:false },
+        { label:'CL',  data: Array(25).fill(limits.xbarbar), borderColor:'#94A3B8', borderWidth:1, pointRadius:0, fill:false },
+        { label:'LCL', data: Array(25).fill(limits.LCLx), borderColor:'#E24B4A', borderWidth:1.5, borderDash:[5,4], pointRadius:0, fill:false },
+      ]
+    },
+    options: {
+      ...chartDefaults,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ctx.dataset.label+': '+ctx.parsed.y.toFixed(4)+' mm' } }
+      },
+      scales: {
+        ...chartDefaults.scales,
+        y: { ...chartDefaults.scales.y, min: limits.LCLx-0.006, max: limits.UCLx+0.006,
+          ticks: { ...chartDefaults.scales.y.ticks, callback: v=>v.toFixed(3) } }
+      }
+    }
+  });
+}
+
+function makeRChart(id, groups, limits) {
+  new Chart(document.getElementById(id), {
+    type: 'line',
+    data: {
+      labels: groups.map(g=>g.i),
+      datasets: [
+        { label:'R', data: groups.map(g=>g.R), borderColor:'#1D9E75', backgroundColor:'#1D9E75', pointRadius:4, borderWidth:2, tension:0.2, fill:false },
+        { label:'UCL_R', data: Array(25).fill(limits.UCLr), borderColor:'#E24B4A', borderWidth:1.5, borderDash:[5,4], pointRadius:0, fill:false },
+        { label:'CL_R', data: Array(25).fill(limits.Rbar), borderColor:'#94A3B8', borderWidth:1, pointRadius:0, fill:false },
+      ]
+    },
+    options: {
+      ...chartDefaults,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ctx.dataset.label+': '+ctx.parsed.y.toFixed(4)+' mm' } }
+      },
+      scales: {
+        ...chartDefaults.scales,
+        y: { ...chartDefaults.scales.y, min: 0, max: limits.UCLr+0.006,
+          ticks: { ...chartDefaults.scales.y.ticks, callback: v=>v.toFixed(3) } }
+      }
+    }
+  });
+}
+
+function makeNormalChart() {
+  const mu = L.xbarbar, sigma = L.sigma;
+  const xs = Array.from({length:200}, (_,i) => mu - 4*sigma + i*(8*sigma/199));
+  const ys = xs.map(x => Math.exp(-0.5*((x-mu)/sigma)**2) / (sigma*Math.sqrt(2*Math.PI)));
+  new Chart(document.getElementById('c3n'), {
+    type: 'line',
+    data: {
+      labels: xs.map(x=>x.toFixed(4)),
+      datasets: [
+        { data: ys, borderColor:'#2E75B6', backgroundColor:'rgba(46,117,182,0.12)', fill:true, pointRadius:0, borderWidth:2, tension:0.4 },
+        { data: xs.map((x,i) => (x>=LSL && x<=USL) ? ys[i] : null), borderColor:'transparent', backgroundColor:'rgba(29,158,117,0.25)', fill:true, pointRadius:0, borderWidth:0, tension:0.4 },
+        { data: xs.map(x => x < LSL ? ys[xs.indexOf(x)>=0?xs.indexOf(x):0] : null), borderColor:'transparent', backgroundColor:'rgba(226,75,74,0.3)', fill:true, pointRadius:0, borderWidth:0 },
+        { data: xs.map(x => x > USL ? ys[xs.indexOf(x)>=0?xs.indexOf(x):0] : null), borderColor:'transparent', backgroundColor:'rgba(226,75,74,0.3)', fill:true, pointRadius:0, borderWidth:0 },
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins: { legend:{display:false}, tooltip:{enabled:false} },
+      scales: {
+        x: { grid:{color:gridColor}, ticks:{ maxTicksLimit:9, font:{size:11}, color:'#94A3B8', callback:(_,i)=>xs[i]?xs[i].toFixed(3):'' } },
+        y: { display:false }
+      }
+    }
+  });
+}
+
+makeXbarChart('c1x', data1, L);
+makeRChart('c1r', data1, L);
+makeXbarChart('c2x', data2, L);
+makeNormalChart();
+
+function showSection(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  const tabId = 'tab-' + id;
+  if (document.getElementById(tabId)) document.getElementById(tabId).classList.add('active');
+}
+
+function setNav(id) {
+  document.querySelectorAll('.sidebar-item:not(.done)').forEach(el => el.classList.remove('active'));
+  const el = document.getElementById(id);
+  if (el) el.classList.add('active');
+}
+</script>
+</body>
+</html>
