@@ -2,18 +2,19 @@
 
 import { useState } from 'react';
 import type { QuizQuestion, QuizStatus } from '@/lib/quiz';
+import type { QuizSubmitResult } from '@/lib/quiz';
+import { buildShuffle, applyShuffleToQuestions } from '@/lib/shuffle';
 import QuizForm from './QuizForm';
 import QuizResult from './QuizResult';
-import type { QuizSubmitResult } from '@/lib/quiz';
 
 type Stage =
   | { type: 'IDLE' }
   | { type: 'CHECKING' }
   | { type: 'ALREADY_PASSED'; attemptCount: number }
   | { type: 'COOLDOWN_ACTIVE'; secondsRemaining: number; attemptCount: number }
-  | { type: 'READY_FOR_QUIZ'; attemptCount: number }
-  | { type: 'SUBMITTING' }
-  | { type: 'RESULT'; result: QuizSubmitResult };
+  | { type: 'READY_FOR_QUIZ'; shuffledQuestions: QuizQuestion[]; attemptCount: number }
+  | { type: 'SUBMITTING'; shuffledQuestions: QuizQuestion[] }
+  | { type: 'RESULT'; result: QuizSubmitResult; shuffledQuestions: QuizQuestion[] };
 
 interface StudentIdFormProps {
   questions: QuizQuestion[];
@@ -25,6 +26,11 @@ export default function StudentIdForm({ questions, cooldownMinutes }: StudentIdF
   const [studentId, setStudentId] = useState('');
   const [stage, setStage] = useState<Stage>({ type: 'IDLE' });
   const [error, setError] = useState('');
+
+  function shuffleQuestionsForStudent(id: string): QuizQuestion[] {
+    const shuffle = buildShuffle(id.trim(), questions.length, questions[0].options.length);
+    return applyShuffleToQuestions(questions, shuffle);
+  }
 
   async function checkStatus() {
     if (!studentName.trim() || !studentId.trim()) {
@@ -41,9 +47,14 @@ export default function StudentIdForm({ questions, cooldownMinutes }: StudentIdF
       if (data.alreadyPassed) {
         setStage({ type: 'ALREADY_PASSED', attemptCount: data.attemptCount });
       } else if (data.cooldownActive) {
-        setStage({ type: 'COOLDOWN_ACTIVE', secondsRemaining: data.cooldownSecondsRemaining, attemptCount: data.attemptCount });
+        setStage({
+          type: 'COOLDOWN_ACTIVE',
+          secondsRemaining: data.cooldownSecondsRemaining,
+          attemptCount: data.attemptCount,
+        });
       } else {
-        setStage({ type: 'READY_FOR_QUIZ', attemptCount: data.attemptCount });
+        const shuffledQuestions = shuffleQuestionsForStudent(studentId);
+        setStage({ type: 'READY_FOR_QUIZ', shuffledQuestions, attemptCount: data.attemptCount });
       }
     } catch {
       setError('Kunde inte kontrollera status. Försök igen.');
@@ -52,12 +63,19 @@ export default function StudentIdForm({ questions, cooldownMinutes }: StudentIdF
   }
 
   async function handleSubmit(answers: number[]) {
-    setStage({ type: 'SUBMITTING' });
+    const shuffledQuestions =
+      stage.type === 'READY_FOR_QUIZ' ? stage.shuffledQuestions : [];
+    setStage({ type: 'SUBMITTING', shuffledQuestions });
+
     try {
       const res = await fetch('/api/quiz/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ studentName: studentName.trim(), studentId: studentId.trim(), answers }),
+        body: JSON.stringify({
+          studentName: studentName.trim(),
+          studentId: studentId.trim(),
+          answers,
+        }),
       });
       const data = await res.json();
 
@@ -66,19 +84,23 @@ export default function StudentIdForm({ questions, cooldownMinutes }: StudentIdF
         return;
       }
       if (res.status === 429) {
-        setStage({ type: 'COOLDOWN_ACTIVE', secondsRemaining: data.cooldownSecondsRemaining ?? 600, attemptCount: 1 });
+        setStage({
+          type: 'COOLDOWN_ACTIVE',
+          secondsRemaining: data.cooldownSecondsRemaining ?? 600,
+          attemptCount: 1,
+        });
         return;
       }
       if (!res.ok) {
         setError('Fel vid inlämning. Försök igen.');
-        setStage({ type: 'READY_FOR_QUIZ', attemptCount: 0 });
+        setStage({ type: 'READY_FOR_QUIZ', shuffledQuestions, attemptCount: 0 });
         return;
       }
 
-      setStage({ type: 'RESULT', result: data as QuizSubmitResult });
+      setStage({ type: 'RESULT', result: data as QuizSubmitResult, shuffledQuestions });
     } catch {
       setError('Nätverksfel. Försök igen.');
-      setStage({ type: 'READY_FOR_QUIZ', attemptCount: 0 });
+      setStage({ type: 'READY_FOR_QUIZ', shuffledQuestions, attemptCount: 0 });
     }
   }
 
@@ -89,7 +111,7 @@ export default function StudentIdForm({ questions, cooldownMinutes }: StudentIdF
   if (stage.type === 'READY_FOR_QUIZ' || stage.type === 'SUBMITTING') {
     return (
       <QuizForm
-        questions={questions}
+        questions={stage.shuffledQuestions}
         studentName={studentName.trim()}
         onSubmit={handleSubmit}
         submitting={stage.type === 'SUBMITTING'}
@@ -101,7 +123,7 @@ export default function StudentIdForm({ questions, cooldownMinutes }: StudentIdF
     return (
       <QuizResult
         result={stage.result}
-        questions={questions}
+        questions={stage.shuffledQuestions}
         studentName={studentName.trim()}
         cooldownMinutes={cooldownMinutes}
         onRetry={handleRetry}
@@ -120,7 +142,9 @@ export default function StudentIdForm({ questions, cooldownMinutes }: StudentIdF
       {stage.type === 'COOLDOWN_ACTIVE' && (
         <div className="mb-6 bg-[#BA7517]/10 border border-[#BA7517] rounded-lg p-4 text-[#BA7517]">
           <p className="font-medium">Du har nyligen gjort ett misslyckat försök.</p>
-          <p className="text-sm mt-1">Vänta {Math.ceil(stage.secondsRemaining / 60)} minuter innan du försöker igen.</p>
+          <p className="text-sm mt-1">
+            Vänta {Math.ceil(stage.secondsRemaining / 60)} minuter innan du försöker igen.
+          </p>
         </div>
       )}
 

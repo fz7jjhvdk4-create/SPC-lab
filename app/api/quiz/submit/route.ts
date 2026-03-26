@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import type { QuizSubmitResult } from '@/lib/quiz';
+import { buildShuffle, evaluateShuffledAnswers } from '@/lib/shuffle';
 import quizConfig from '@/data/quiz-questions.json';
 
 const PASSING_SCORE = quizConfig.meta.passingScore;
 const COOLDOWN_MINUTES = quizConfig.meta.cooldownMinutes;
 const TOTAL_QUESTIONS = quizConfig.meta.totalQuestions;
+const NUM_OPTIONS = 4;
 
 export async function POST(request: NextRequest) {
   let body: { studentName?: unknown; studentId?: unknown; answers?: unknown };
@@ -21,7 +23,7 @@ export async function POST(request: NextRequest) {
     typeof studentName !== 'string' || studentName.trim() === '' ||
     typeof studentId !== 'string' || studentId.trim() === '' ||
     !Array.isArray(answers) || answers.length !== TOTAL_QUESTIONS ||
-    !answers.every((a) => typeof a === 'number' && a >= 0 && a <= 3)
+    !answers.every((a) => typeof a === 'number' && a >= 0 && a <= NUM_OPTIONS - 1)
   ) {
     return NextResponse.json({ error: 'Ogiltig inlämning' }, { status: 400 });
   }
@@ -61,16 +63,25 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Evaluate answers (correctIndex is server-side only)
-    const questions = quizConfig.questions;
-    const correctMask: boolean[] = questions.map(
-      (q, i) => (answers as number[])[i] === q.correctIndex
+    // Reconstruct the same shuffle the student saw, using their student ID as seed.
+    // This is identical to what the client computed in StudentIdForm.
+    const shuffle = buildShuffle(cleanId, TOTAL_QUESTIONS, NUM_OPTIONS);
+
+    // Evaluate answers using the shuffle mapping (correctIndex stays server-side only)
+    const correctMask = evaluateShuffledAnswers(
+      quizConfig.questions,
+      shuffle,
+      answers as number[]
     );
+
     const score = correctMask.filter(Boolean).length;
     const passed = score >= PASSING_SCORE;
-    const wrongQuestionIds = questions
-      .filter((_, i) => !correctMask[i])
-      .map((q) => q.id);
+
+    // Wrong question IDs in shuffled order (client can match these by position)
+    const wrongQuestionIds = shuffle
+      .map((s, i) => ({ id: quizConfig.questions[s.originalIndex].id, correct: correctMask[i] }))
+      .filter((x) => !x.correct)
+      .map((x) => x.id);
 
     // Persist to database
     await sql`
